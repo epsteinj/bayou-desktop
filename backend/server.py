@@ -657,12 +657,61 @@ def _short(content, n=240):
     content = (content or "").strip()
     return content if len(content) <= n else content[:n] + f" … (+{len(content)-n} chars)"
 
+# ----------------------- tool sandbox -----------------------
+# Defense-in-depth: even an auto-run or user-approved tool must not read
+# secrets or run obviously destructive commands. Enforced regardless of model
+# or approval. BAYOU_WORKSPACE (if set) additionally confines file tools to it.
+TOOL_TIMEOUT = int(os.environ.get("BAYOU_TOOL_TIMEOUT", "90"))
+WORKSPACE = (os.path.realpath(os.path.expanduser(os.environ["BAYOU_WORKSPACE"]))
+             if os.environ.get("BAYOU_WORKSPACE") else None)
+_SENSITIVE_PATHS = ["/.ssh", "/.aws", "/.gnupg", "/.config/gh", "/.config/gcloud",
+                    "/.kube", "/.docker/config", "/.netrc", "/library/keychains",
+                    "/library/cookies", "/library/application support/google/chrome",
+                    "/library/application support/firefox", "/.mozilla"]
+_SENSITIVE_NAMES = re.compile(r"(id_rsa|id_ed25519|\.pem$|\.key$|\.p12$|/\.env(\.|$)|credential|secret)", re.I)
+_DANGEROUS_BASH = re.compile(
+    r"(rm\s+-[rf]*\s+(/|~|\$HOME|\*)|:\(\)\s*\{|mkfs|dd\s+if=.*of=/dev/|>\s*/dev/sd|"
+    r"\bsudo\b|shutdown|reboot|\bhalt\b|chmod\s+-R\s+777\s+/|chown\s+-R\b.*\s+/|"
+    r"\bcurl\b[^|]*\|\s*(sudo\s+)?(ba)?sh|\bwget\b[^|]*\|\s*(ba)?sh|"
+    r"defaults\s+write|/etc/(passwd|sudoers))", re.I)
+
+def _path_blocked(p):
+    if not p:
+        return None
+    rp = os.path.realpath(os.path.expanduser(str(p))); low = rp.lower()
+    if any(s in low for s in _SENSITIVE_PATHS) or _SENSITIVE_NAMES.search(rp):
+        return f"sensitive path ({p})"
+    if WORKSPACE and not (rp == WORKSPACE or rp.startswith(WORKSPACE + os.sep)):
+        return f"outside the workspace ({p})"
+    return None
+
+def policy_violation(call):
+    a = call.arguments if isinstance(call.arguments, dict) else {}
+    if call.name == "bash":
+        cmd = str(a.get("command") or a.get("cmd") or "")
+        if _DANGEROUS_BASH.search(cmd):
+            return "dangerous shell command"
+        if any(s in cmd.lower() for s in _SENSITIVE_PATHS) or _SENSITIVE_NAMES.search(cmd):
+            return "command references a sensitive path"
+        return None
+    for k in ("path", "file_path"):
+        v = _path_blocked(a.get(k))
+        if v:
+            return v
+    return None
+
 async def _run_tool(tool, call):
     from bayou.tools.registry import ToolContext
+    v = policy_violation(call)
+    if v:
+        return f"[error: blocked by sandbox — {v}]"
     loop = asyncio.get_event_loop()
     try:
-        return await loop.run_in_executor(
-            None, lambda: tool.run(call.arguments, ToolContext(app=None)))
+        return await asyncio.wait_for(
+            loop.run_in_executor(None, lambda: tool.run(call.arguments, ToolContext(app=None))),
+            timeout=TOOL_TIMEOUT)
+    except asyncio.TimeoutError:
+        return f"[error: tool timed out after {TOOL_TIMEOUT}s]"
     except Exception as e:
         return f"[error: {type(e).__name__}: {e}]"
 
@@ -733,10 +782,16 @@ async def agent_turn(send, conv, approvals, stop_evt, max_tokens=MAX_TOKENS, ena
             break
         for call in calls:
             tool = ENGINE.tools.get(call.name)
+            viol = policy_violation(call) if tool is not None else None
             if tool is None:
                 content = f"[no such tool: {call.name}]"
                 await send({"type": "tool_result", "id": call.id, "name": call.name,
                             "ok": False, "summary": content})
+            elif viol:
+                # Hard block — never run, never even ask for approval.
+                content = f"[blocked by sandbox: {viol}]"
+                await send({"type": "tool_result", "id": call.id, "name": call.name,
+                            "ok": False, "summary": "🛡 blocked — " + viol})
             else:
                 if tool.is_destructive or call.name in GATED:
                     fut = loop.create_future(); approvals[call.id] = fut
