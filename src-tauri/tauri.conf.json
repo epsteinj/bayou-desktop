@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "bayou",
+  "version": "0.1.0",
+  "identifier": "com.bayou.desktop",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "bayou",
+        "width": 1320,
+        "height": 840,
+        "minWidth": 1000,
+        "minHeight": 660,
+        "titleBarStyle": "Overlay",
+        "backgroundColor": "#05080c"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": ["icons/icon.icns", "icons/icon.ico", "icons/128x128.png"]
+  }
+}

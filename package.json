@@ -1,0 +1,15 @@
+{
+  "name": "bayou-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop harness for bayou — a local agent with a living MoE brain visualization",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "backend": "python3 backend/server.py"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
