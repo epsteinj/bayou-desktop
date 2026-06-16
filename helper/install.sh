@@ -16,12 +16,16 @@ mkdir -p "$HELPER_HOME/logs"
 cp "$SRC/backend/server.py" "$HELPER_HOME/server.py"
 
 echo "▸ creating venv + installing engine (mlx, mlx-lm, fastapi, the bayou harness)…"
+# bayou needs Python >= 3.11; the system python3 is often older, so pin it.
+PYV="${BAYOU_PYTHON:-3.12}"
 if command -v uv >/dev/null 2>&1; then
-  uv venv "$VENV" >/dev/null 2>&1 || true
+  uv venv --python "$PYV" "$VENV"                 # uv fetches Python $PYV if missing
   uv pip install --python "$VENV/bin/python" -q \
      mlx mlx-lm fastapi uvicorn "websockets==12" huggingface_hub "$OSS"
 else
-  python3 -m venv "$VENV"
+  PY="$(command -v "python$PYV" || command -v python3.12 || command -v python3.11 || true)"
+  [ -z "$PY" ] && { echo "✗ need Python >= 3.11 (install it, or set BAYOU_PYTHON)"; exit 1; }
+  "$PY" -m venv "$VENV"
   "$VENV/bin/pip" install -q --upgrade pip
   "$VENV/bin/pip" install -q mlx mlx-lm fastapi uvicorn "websockets==12" huggingface_hub "$OSS"
 fi
