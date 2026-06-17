@@ -277,6 +277,16 @@
   </div>
 </div>
 
+<!-- model present but couldn't load (memory) -->
+<div class="ov" id="memov">
+  <div class="modal">
+    <h3>Not enough free memory</h3>
+    <div class="sub">Your models are downloaded, but there isn't enough free memory to load one right now. Close some apps (or restart your Mac) to free a few GB, then retry — bayou will pick a model that fits.</div>
+    <pre id="mem_why" style="background:var(--bg2);border:1px solid var(--line2);border-radius:3px;padding:12px 14px;font-family:ui-monospace,monospace;font-size:12px;color:var(--dim);overflow:auto;white-space:pre-wrap;margin:0 0 16px"></pre>
+    <div class="mbtns"><div class="l"><button class="ghost" id="mem_smaller">Use a smaller model</button></div><div class="l"><button class="save" id="mem_retry">Retry</button></div></div>
+  </div>
+</div>
+
 <!-- helper not running -->
 <div class="ov" id="helpov">
   <div class="modal" style="width:min(560px,92vw)">
@@ -512,6 +522,9 @@ function openDl(firstRun){ $('dl_h').textContent=firstRun?'Welcome to bayou':'Ge
   renderDlCards(); $('dlov').classList.add('open'); }
 $('dl_close').onclick=()=>$('dlov').classList.remove('open');
 $('dlov').onclick=e=>{ if(e.target===$('dlov')) $('dlov').classList.remove('open'); };
+function openMemErr(why){ $('mem_why').textContent = why || 'not enough free memory to load a model'; $('memov').classList.add('open'); }
+$('mem_retry').onclick=()=>{ if(useWS&&ws&&ws.readyState===1){ ws.send(JSON.stringify({type:'retry_load'})); beginSwitch('retrying…'); $('memov').classList.remove('open'); } };
+$('mem_smaller').onclick=()=>{ $('memov').classList.remove('open'); openDl(false); };
 
 /* ---------- model picker ---------- */
 const curModel=$('curModel'), menu=$('menu'), pickbtn=$('pickbtn');
@@ -544,8 +557,10 @@ function handleEvent(ev){
       OFFLOADING=!!ev.offloading;
       DEFAULT_SYS=ev.system_prompt||''; if(!curSys)curSys=DEFAULT_SYS; maxTokens=ev.max_tokens||maxTokens;
       DLMODELS=ev.downloadable||DLMODELS;
-      setStatus(ev.mock?'no model':(CURRENT+(OFFLOADING?' · offload':''))); renderMenu();
-      if(ev.needs_model) openDl(true); else $('dlov').classList.remove('open');
+      setStatus(ev.load_failed?'no memory':(ev.mock?'no model':(CURRENT+(OFFLOADING?' · offload':'')))); renderMenu();
+      if(ev.needs_model){ $('memov').classList.remove('open'); openDl(true); }
+      else if(ev.load_failed){ $('dlov').classList.remove('open'); openMemErr(ev.error); }
+      else { $('dlov').classList.remove('open'); $('memov').classList.remove('open'); }
       return;
     case 'downloadable': DLMODELS=ev.models||DLMODELS; if($('dlov').classList.contains('open')) renderDlCards(); return;
     case 'download_progress': { const c=$('dlc-'+ev.name); if(c){ c.classList.add('busy'); c.querySelector('.dlbar i').style.width=ev.pct+'%';

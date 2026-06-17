@@ -497,20 +497,13 @@ class Engine:
         self.err = None
 
     def _candidates(self):
-        # 1) config.json active model (set by download/swap) — only if its
-        #    weights are actually present (guards incomplete downloads).
         mp = all_models()
-        cfg = read_config().get("model")
-        if cfg and cfg in mp and _has_weights(mp[cfg][0]):
-            md, ed = mp[cfg]; return [(cfg, md, ed)]
-        if cfg:                                   # stale / incomplete → forget it
-            write_config({"model": None})
-        # 2) explicit env override (dev)
+        # explicit env override (dev) wins outright
         if "BAYOU_MODEL" in os.environ and _has_weights(MODEL_DIR):
             return [("custom", MODEL_DIR, EXPERTS_DIR)]
-        # 3) auto-select: prefer the largest MoE-OFFLOAD model whose LOAD PEAK
-        #    fits the Metal budget (so the offload engine is the default, and
-        #    qwen35b's ~24 GB construction peak can't thrash this Mac).
+        # auto-rank ALL downloaded models: prefer the largest MoE-OFFLOAD model
+        # whose LOAD PEAK fits the Metal budget (offload is the default, and a
+        # huge construction peak can't thrash this Mac).
         try:
             from bayou.runtime_safety import current_hardware, estimate_footprint
             hw = current_hardware()
@@ -531,6 +524,15 @@ class Engine:
                 scored.append((not has, -peak, n, md, ed))   # MoE first, then largest
         scored.sort()
         cands = [(n, md, ed) for _, _, n, md, ed in scored]
+        # honor the config pin by TRYING IT FIRST, but keep the rest as
+        # fallbacks — a too-big pin (e.g. a dense model on a tight machine)
+        # then falls back to a model that fits instead of dropping to mock.
+        cfg = read_config().get("model")
+        if cfg and cfg in mp and _has_weights(mp[cfg][0]):
+            md, ed = mp[cfg]
+            cands = [(cfg, md, ed)] + [c for c in cands if c[0] != cfg]
+        elif cfg:                                 # stale / incomplete → forget it
+            write_config({"model": None})
         return cands or [("custom", MODEL_DIR, EXPERTS_DIR)]
 
     def _force_smallest(self):
@@ -598,11 +600,16 @@ class Engine:
             self.ready = True
 
     def hello(self):
+        have_weights = any(_has_weights(md) for md, _ in all_models().values())
         return {"type": "hello", "model": self.model_name if not self.mock else "mock",
                 "mock": self.mock, "tools": [t.name for t in (self.tools.list() if self.tools else [])],
                 "models": list_models(), "current": current_model_name(),
                 "offloading": bool(self.blocks),   # MoE expert-offload engine active
-                "needs_model": bool(self.mock), "downloadable": downloadable_list(),
+                # only prompt a DOWNLOAD when nothing is on disk; if weights exist
+                # but we're in mock, it's a load/memory failure, not a missing model.
+                "needs_model": bool(self.mock and not have_weights),
+                "load_failed": bool(self.mock and have_weights),
+                "downloadable": downloadable_list(),
                 "system_prompt": build_system(), "max_tokens": MAX_TOKENS, "error": self.err}
 
     def shutdown(self):
@@ -925,6 +932,10 @@ def serve():
                         await send({"type": "switching", "model": msg.get("name")})
                         await asyncio.sleep(0.25)
                         reexec(active=msg.get("name"))
+                    elif t == "retry_load":
+                        await send({"type": "switching", "model": "retrying…"})
+                        await asyncio.sleep(0.25)
+                        reexec()                       # fresh process → re-runs load()
                     elif t == "cancel_download":
                         cancel_download(msg.get("name"))
                     else:
