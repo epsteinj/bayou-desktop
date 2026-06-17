@@ -262,15 +262,40 @@
 
 <!-- helper not running -->
 <div class="ov" id="helpov">
-  <div class="modal">
-    <h3>Connect bayou to your Mac</h3>
-    <div class="sub">bayou runs a tiny local helper on your Mac — your model, tools, and chats all stay local. Install it once (Apple Silicon). Paste this in <b>Terminal</b>:</div>
-    <div style="position:relative;margin-bottom:14px">
-      <pre id="installcmd" style="background:var(--bg2);border:1px solid var(--line2);border-radius:11px;padding:14px;font-family:ui-monospace,monospace;font-size:12.5px;color:#dbe6d8;overflow:auto;white-space:pre-wrap;word-break:break-all">curl -fsSL https://raw.githubusercontent.com/epsteinj/bayou-desktop/main/helper/install.sh | bash</pre>
-      <button id="copyinstall" style="position:absolute;top:8px;right:8px;border:none;background:rgba(20,30,25,.9);color:var(--gold2);border-radius:7px;padding:5px 11px;font-size:11px;cursor:pointer">copy</button>
+  <div class="modal" style="width:min(560px,92vw)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <span style="width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px var(--gold)"></span>
+      <span style="font-family:var(--disp);font-weight:500;font-size:28px;letter-spacing:.5px">bayou</span>
     </div>
-    <div class="sub">It auto-starts on login and listens only on localhost. When it's up, this page connects automatically.</div>
-    <div class="mbtns"><div class="l"></div><div class="l"><button class="save" id="help_retry">Retry connection</button></div></div>
+    <div class="sub" style="margin-bottom:22px;line-height:1.55;font-size:13px">
+      A private AI agent that runs entirely on your own Mac — your model, your files, your chats never leave the machine. Free to use.
+      <span style="color:var(--faint)"> Requires Apple Silicon (M-series).</span>
+    </div>
+
+    <div style="display:flex;gap:13px;margin-bottom:18px">
+      <div style="flex:none;width:24px;height:24px;border-radius:50%;border:1px solid var(--line2);background:rgba(231,184,95,.07);color:var(--gold2);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;margin-top:1px">1</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--text);margin-bottom:9px">Install the helper — paste this into <b>Terminal</b>:</div>
+        <div style="position:relative">
+          <pre id="installcmd" style="background:var(--bg2);border:1px solid var(--line2);border-radius:11px;padding:14px 52px 14px 14px;font-family:ui-monospace,monospace;font-size:12px;color:#dbe6d8;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:0">curl -fsSL https://raw.githubusercontent.com/epsteinj/bayou-desktop/main/helper/install.sh | bash</pre>
+          <button id="copyinstall" style="position:absolute;top:8px;right:8px;border:none;background:rgba(20,30,25,.9);color:var(--gold2);border-radius:7px;padding:5px 11px;font-size:11px;cursor:pointer">copy</button>
+        </div>
+        <a href="https://github.com/epsteinj/bayou-desktop/blob/main/helper/install.sh" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-size:11.5px;color:var(--faint);text-decoration:none">Want to read it first? Inspect the script ↗</a>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:13px;margin-bottom:22px">
+      <div style="flex:none;width:24px;height:24px;border-radius:50%;border:1px solid var(--line2);background:rgba(231,184,95,.07);color:var(--gold2);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;margin-top:1px">2</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--text);margin-bottom:5px">That's it — you're done.</div>
+        <div style="font-size:12.5px;color:var(--faint);line-height:1.55">The helper auto-starts on login and listens only on <b>localhost</b>. This page connects on its own the moment it's up. First run, it'll offer to download a model (just once).</div>
+      </div>
+    </div>
+
+    <div class="mbtns">
+      <div class="l"><a href="https://github.com/epsteinj/bayou-desktop/blob/main/helper/uninstall.sh" target="_blank" rel="noopener" style="font-size:11.5px;color:var(--faint);text-decoration:none">Uninstall ↗</a></div>
+      <div class="l"><button class="save" id="help_retry">Retry connection</button></div>
+    </div>
   </div>
 </div>
 
