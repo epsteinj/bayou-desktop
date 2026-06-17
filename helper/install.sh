@@ -14,7 +14,7 @@ OSS_REPO="${BAYOU_OSS_REPO:-https://github.com/epsteinj/bayou-oss}"
 SERVER_URL="${BAYOU_SERVER_URL:-https://raw.githubusercontent.com/epsteinj/bayou-desktop/main/backend/server.py}"
 PLIST="$HOME/Library/LaunchAgents/com.bayou.helper.plist"
 PORT="${BAYOU_PORT:-8780}"
-ALLOWED="${BAYOU_ALLOWED_ORIGINS:-https://epsteinj.github.io}"   # the deployed UI origin
+ALLOWED="${BAYOU_ALLOWED_ORIGINS:-https://jakee.vc,https://epsteinj.github.io}"   # the deployed UI origins
 PYV="${BAYOU_PYTHON:-3.12}"
 
 [ "$(uname)" = "Darwin" ] || { echo "✗ bayou helper is macOS-only (needs Apple Silicon + Metal)"; exit 1; }
@@ -64,7 +64,7 @@ launchctl load "$PLIST"
 sleep 2
 echo ""
 echo "✓ bayou helper installed and running."
-echo "  → Open  https://epsteinj.github.io/bayou-web/  and it'll connect."
+echo "  → Open  https://jakee.vc/bayou  and it'll connect."
 echo "    (First time? the page will offer to download a model.)"
 echo "  logs:      $HELPER_HOME/logs/helper.log"
 echo "  uninstall: curl -fsSL https://raw.githubusercontent.com/epsteinj/bayou-desktop/main/helper/uninstall.sh | bash"
