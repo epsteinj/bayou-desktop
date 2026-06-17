@@ -264,10 +264,12 @@
 <div class="ov" id="helpov">
   <div class="modal">
     <h3>Connect bayou to your Mac</h3>
-    <div class="sub">bayou runs a tiny local helper on your machine — your model, tools, and chats all stay local. Install it once, then this page connects automatically.</div>
-    <pre style="background:var(--bg2);border:1px solid var(--line2);border-radius:11px;padding:14px;font-family:ui-monospace,monospace;font-size:12.5px;color:#dbe6d8;overflow:auto;margin-bottom:14px">git clone …/bayou-desktop &amp;&amp; cd bayou-desktop
-./helper/install.sh</pre>
-    <div class="sub">The helper auto-starts on login and listens on localhost. Nothing is sent anywhere.</div>
+    <div class="sub">bayou runs a tiny local helper on your Mac — your model, tools, and chats all stay local. Install it once (Apple Silicon). Paste this in <b>Terminal</b>:</div>
+    <div style="position:relative;margin-bottom:14px">
+      <pre id="installcmd" style="background:var(--bg2);border:1px solid var(--line2);border-radius:11px;padding:14px;font-family:ui-monospace,monospace;font-size:12.5px;color:#dbe6d8;overflow:auto;white-space:pre-wrap;word-break:break-all">curl -fsSL https://raw.githubusercontent.com/epsteinj/bayou-desktop/main/helper/install.sh | bash</pre>
+      <button id="copyinstall" style="position:absolute;top:8px;right:8px;border:none;background:rgba(20,30,25,.9);color:var(--gold2);border-radius:7px;padding:5px 11px;font-size:11px;cursor:pointer">copy</button>
+    </div>
+    <div class="sub">It auto-starts on login and listens only on localhost. When it's up, this page connects automatically.</div>
     <div class="mbtns"><div class="l"></div><div class="l"><button class="save" id="help_retry">Retry connection</button></div></div>
   </div>
 </div>
@@ -534,6 +536,7 @@ async function connect(){
   }catch(_){ setTimeout(connect,1500); }
 }
 $('help_retry').onclick=()=>{ $('helpov').classList.remove('open'); TOKEN=''; localStorage.removeItem('bayou_token'); connect(); };
+$('copyinstall').onclick=()=>{ navigator.clipboard.writeText($('installcmd').textContent.trim()); const b=$('copyinstall'); b.textContent='copied'; setTimeout(()=>b.textContent='copy',1200); };
 
 /* ---------- compose / send ---------- */
 function buildMessage(t){
