@@ -603,7 +603,11 @@ async function connect(){
       setTimeout(connect,1500); };
   }catch(_){ setTimeout(connect,1500); }
 }
-$('help_retry').onclick=()=>{ $('helpov').classList.remove('open'); TOKEN=''; localStorage.removeItem('bayou_token'); connect(); };
+$('help_retry').onclick=()=>{ // keep the landing up — it only clears when ws.onopen confirms the helper
+  TOKEN=''; localStorage.removeItem('bayou_token');
+  const b=$('help_retry'); b.disabled=true; b.textContent='Checking…';
+  setTimeout(()=>{ b.disabled=false; b.textContent='Retry connection'; },2500);
+  connect(); };
 $('copyinstall').onclick=()=>{ navigator.clipboard.writeText($('installcmd').textContent.trim()); const b=$('copyinstall'); b.textContent='copied'; setTimeout(()=>b.textContent='copy',1200); };
 
 /* ---------- compose / send ---------- */
