@@ -582,7 +582,7 @@ function handleEvent(ev){
   }
 }
 const HELPER='http://127.0.0.1:8780', WSBASE='ws://127.0.0.1:8780/ws';
-let everConnected=false, noHelperTimer=null, TOKEN='';
+let everConnected=false, TOKEN='';
 async function getToken(){
   if(TOKEN) return TOKEN;
   const cached=localStorage.getItem('bayou_token'); if(cached){ TOKEN=cached; return TOKEN; }
@@ -593,13 +593,13 @@ async function connect(){
   await getToken();
   try{
     ws=new WebSocket(WSBASE+(TOKEN?('?token='+encodeURIComponent(TOKEN)):''));
-    ws.onopen=()=>{ useWS=true; everConnected=true; $('helpov').classList.remove('open'); if(noHelperTimer){clearTimeout(noHelperTimer);noHelperTimer=null;} };
+    ws.onopen=()=>{ useWS=true; everConnected=true; $('helpov').classList.remove('open'); };  // helper detected
     ws.onmessage=e=>{ try{ handleEvent(JSON.parse(e.data)); }catch(_){} };
     ws.onerror=()=>{};
     ws.onclose=ev=>{ useWS=false; setStatus(switching?switchLabel:'offline');
       // 1008 = auth rejected → token stale; drop it so the next /pair re-fetches
       if(ev && ev.code===1008){ TOKEN=''; localStorage.removeItem('bayou_token'); }
-      if(!everConnected && !noHelperTimer) noHelperTimer=setTimeout(()=>$('helpov').classList.add('open'),4000);
+      if(!everConnected) $('helpov').classList.add('open');   // not detected yet → keep showing setup
       setTimeout(connect,1500); };
   }catch(_){ setTimeout(connect,1500); }
 }
@@ -673,7 +673,7 @@ $('set_save').onclick=()=>{ const sys=$('set_sys').value, mt=+$('set_len').value
   curSys=sys; maxTokens=mt; $('ov').classList.remove('open'); };
 $('ov').onclick=e=>{ if(e.target===$('ov')) $('ov').classList.remove('open'); };
 
-setStatus('connecting…'); showEmpty(); connect();
+setStatus('connecting…'); showEmpty(); $('helpov').classList.add('open'); connect();   // show setup until helper detected
 </script>
 </body>
 </html>
